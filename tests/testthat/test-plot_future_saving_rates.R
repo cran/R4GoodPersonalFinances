@@ -1,4 +1,4 @@
-test_that("plotting expected allocation", {
+test_that("plotting future saving rates", {
 
   skip_on_cran()
   skip_on_ci()
@@ -22,52 +22,39 @@ test_that("plotting expected allocation", {
   household$add_member(younger_member)
   
   household$expected_income <- list(
-    "income_older" = c(
-      "members$older$age < 60 ~ 40000",
-      "members$older$age >= 60 ~ 20000"
-    ),
-    "income_younger" = c(
-      "members$younger$age < 50 ~ 40000"
+    "income_1" = c(
+      "members$older$age < 65 ~ 30000",
+      "members$older$age >= 65 ~ 1000"
     )
   )
   household$expected_spending <- list(
     "spending1" = c(
-      "TRUE ~ 10000"
+      "members$older$age <= 65 ~ 3000"
+    ),
+    "spending2" = c(
+      "TRUE ~ 15000"
     )
   )
-  test_current_date <- "2020-07-15"
-
+  test_current_date <- "2000-07-15"
   portfolio <- generate_test_asset_returns(2)$returns
+  portfolio$accounts$taxable <- c(1, 1)
+  portfolio$accounts$taxadvantaged <- c(0, 0)
 
   scenario <- 
     simulate_scenario(
       household    = household,
       portfolio    = portfolio,
-      debug = TRUE,
       current_date = test_current_date
     )
   
-  plot <- plot_expected_allocation(
+  plot <- plot_future_saving_rates(
     scenario = scenario
   ); if (interactive()) print(plot)
-  vdiffr::expect_doppelganger("plot1", plot)
-
-  plot <- plot_expected_allocation(
-    scenario = scenario,
-    accounts = "taxable"
-  ); if (interactive()) print(plot)
-  vdiffr::expect_doppelganger("plot2", plot)
-
-  plot <- plot_expected_allocation(
-    scenario = scenario,
-    accounts = "taxadvantaged"
-  ); if (interactive()) print(plot)
-  vdiffr::expect_doppelganger("plot3", plot)
+  vdiffr::expect_doppelganger("plot_fsr", plot)
 })
 
-test_that("plotting expected allocation for Monte Carlo samples", {
+test_that("plotting future saving rates for multiple samples", {
 
-  skip_on_cran()
   skip_on_ci()
   
   older_member <- HouseholdMember$new(
@@ -89,35 +76,47 @@ test_that("plotting expected allocation for Monte Carlo samples", {
   household$add_member(younger_member)
   
   household$expected_income <- list(
-    "income_older" = c(
-      "members$older$age < 60 ~ 40000",
-      "members$older$age >= 60 ~ 20000"
-    ),
-    "income_younger" = c(
-      "members$younger$age < 50 ~ 40000"
+    "income_1" = c(
+      "members$older$age < 65 ~ 30000",
+      "members$older$age >= 65 ~ 1000"
     )
   )
   household$expected_spending <- list(
     "spending1" = c(
-      "TRUE ~ 10000"
+      "members$older$age <= 65 ~ 3000"
+    ),
+    "spending2" = c(
+      "TRUE ~ 15000"
     )
   )
-  test_current_date <- "2020-07-15"
-
+  test_current_date <- "2000-07-15"
   portfolio <- generate_test_asset_returns(2)$returns
+  portfolio$accounts$taxable       <- c(0, 0)
+  portfolio$accounts$taxadvantaged <- c(0, 0)
 
   scenario <- 
     simulate_scenario(
       household    = household,
       portfolio    = portfolio,
+      current_date = test_current_date,
       monte_carlo_samples = 3,
-      seeds = 1234,
-      debug = TRUE,
-      current_date = test_current_date
+      seeds = 1234
     )
   
-  plot <- plot_expected_allocation(
+  plot <- plot_future_saving_rates(
+    scenario = scenario,
+    aggregation_function = NULL
+  ); if (interactive()) print(plot)
+  vdiffr::expect_doppelganger("plot_fsrmc", plot)
+
+  plot <- plot_future_saving_rates(
     scenario = scenario
   ); if (interactive()) print(plot)
-  vdiffr::expect_doppelganger("ea_mc", plot)
+  vdiffr::expect_doppelganger("fsrmc_median", plot)
+
+  plot <- plot_future_saving_rates(
+    scenario = scenario,
+    aggregation_function = mean
+  ); if (interactive()) print(plot)
+  vdiffr::expect_doppelganger("fsrmc_mean", plot)
 })
